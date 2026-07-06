@@ -213,3 +213,55 @@ if __name__ == "__main__":
         except AssertionError as e:
             print(f"FAIL {fn.__name__}: {e}"); fails += 1
     sys.exit(1 if fails else 0)
+
+
+def test_tail_absorption(tmp_path):
+    """Dong duoi doan van o block khac phai duoc hut vao doan (het sot duoi EN)."""
+    src = str(tmp_path / "tail.pdf")
+    units_p = str(tmp_path / "units.json")
+    doc = fitz.open()
+    page = doc.new_page(width=595, height=842)
+    y = 100
+    for line in ("The quick brown fox jumps over the lazy dog and",
+                 "continues running through the quiet green field for",
+                 "many hours without any rest."):
+        page.insert_text((60, y), line, fontsize=9)
+        y += 11
+    page.insert_text((60, y + 2.5), "tail continues here.", fontsize=9)  # pitch lech -> block khac
+    doc.save(src)
+    doc.close()
+    run([sys.executable, REBUILD, "plan", src, units_p])
+    units = json.load(open(units_p, encoding="utf-8"))
+    hosts = [u for u in units if "quick brown fox" in u["text"]]
+    assert hosts, "khong thay doan van"
+    assert "tail continues here" in hosts[0]["text"], "dong duoi khong duoc hut vao doan"
+    assert not any(u["text"].strip() == "tail continues here." for u in units), \
+        "dong duoi van con la unit rieng"
+
+
+def test_translate_guards():
+    """Bo loc don vi de vo + guard chong echo dot bien cua LLM."""
+    sys.path.insert(0, ROOT)
+    import app
+
+    units = [
+        {"id": "a", "text": "Warm-up time", "size": 7},
+        {"id": "b", "text": "Windows 8.1, Windows 10, Windows Server 2016", "size": 7},
+        {"id": "c", "text": "®, Mopria", "size": 4.0},           # manh superscript -> fragile
+        {"id": "d", "text": "® environments", "size": 4.5},      # fragile
+    ]
+    seen = {}
+
+    def fake_llm(messages):
+        chunk = json.loads(messages[-1]["content"].rsplit(":\n", 1)[1])
+        seen.update(chunk)
+        return {
+            "a": "Thời gian khởi động",
+            # echo dot bien: mat chu 's', khong co dau tieng Viet -> phai bi loai
+            "b": "Window 8.1, Windows 10, Windows Server 2016",
+        }
+
+    out = app.translate_units(units, {"terms": {}}, "http://x", "k", "m", llm=fake_llm)
+    assert "c" not in seen and "d" not in seen, "don vi fragile van bi gui cho LLM"
+    assert out.get("a") == "Thời gian khởi động"
+    assert "b" not in out, "echo dot bien phai bi giu nguyen ban goc"

@@ -35,7 +35,7 @@ SYSTEM_PROMPT = """Ban la bien dich vien tai lieu ky thuat Anh -> Viet cho catal
 QUY TAC BAT BUOC:
 1. Giu nguyen: so lieu, don vi (dpi, GB, g/m2, V, Hz...), ma model/SKU, ten thuong hieu/phan mem, ten tin hieu dien.
 2. Ap dung glossary duoc cung cap mot cach NHAT QUAN tuyet doi.
-3. Muc nao toan ma san pham/ten rieng -> tra ve NGUYEN VAN (khong dich).
+3. Muc nao toan ma san pham/ten rieng/danh sach phien ban (Windows, Adobe, Intel...) -> tra ve NGUYEN VAN 100%, khong sua mot ky tu nao.
 4. Tra ve JSON: {"id": "ban dich", ...} cho DUNG cac id duoc giao, khong them bot."""
 
 
@@ -50,11 +50,38 @@ def call_llm(base_url, api_key, model, messages):
         return json.loads(json.load(r)["choices"][0]["message"]["content"])
 
 
+VN_DIACRITICS = re.compile(r"[àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]", re.I)
+
+
+def is_fragile(u):
+    """Don vi de vo: manh ®/™ co nho, danh sach ten rieng — KHONG gui cho LLM."""
+    t = u["text"].strip()
+    if u.get("size", 9) <= 5.2:          # manh superscript (®/™) co 4-5pt
+        return True
+    if t[:1] in "®™©":
+        return True
+    return False
+
+
+def echo_mutated(original, translated):
+    """LLM 'echo' lai ten rieng nhung sai lech nho -> giu nguyen ban goc.
+    Dau hieu: ban dich KHONG co dau tieng Viet nhung van trung >=50% tu voi goc."""
+    if VN_DIACRITICS.search(translated):
+        return False
+    ot = set(re.findall(r"[A-Za-z0-9]+", original.lower()))
+    tt = set(re.findall(r"[A-Za-z0-9]+", translated.lower()))
+    if not ot or not tt:
+        return False
+    overlap = len(ot & tt) / max(len(ot), len(tt))
+    return overlap >= 0.5
+
+
 def translate_units(units, glossary, base_url, api_key, model,
                     batch=30, progress=lambda msg: None, llm=None):
     """Dịch các đơn vị có chữ. llm: hàm inject để test không cần API thật."""
     llm = llm or (lambda msgs: call_llm(base_url, api_key, model, msgs))
-    todo = [u for u in units if re.search(r"[A-Za-z]{2,}", u["text"])]
+    todo = [u for u in units
+            if re.search(r"[A-Za-z]{2,}", u["text"]) and not is_fragile(u)]
     result = {}
     for i in range(0, len(todo), batch):
         chunk = {u["id"]: u["text"] for u in todo[i:i + batch]}
@@ -64,9 +91,13 @@ def translate_units(units, glossary, base_url, api_key, model,
                 "GLOSSARY:\n" + json.dumps(glossary.get("terms", {}), ensure_ascii=False)
                 + "\n\nDich cac muc sau sang tieng Viet (muc la ma/ten rieng thi tra ve nguyen van):\n"
                 + json.dumps(chunk, ensure_ascii=False)}])
+        texts = {u["id"]: u["text"] for u in todo[i:i + batch]}
         for k, v in out.items():
-            if isinstance(v, str):
-                result[k] = v
+            if not isinstance(v, str) or k not in texts:
+                continue
+            if echo_mutated(texts[k], v):
+                continue  # echo dot bien ten rieng -> giu nguyen pixel goc
+            result[k] = v
         progress(f"đã dịch {min(i + batch, len(todo))}/{len(todo)} đơn vị")
     return result
 

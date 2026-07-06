@@ -124,7 +124,35 @@ def collect_units(doc):
                 units.append(make_cell_unit(pno, bi, 0, line, [line], None))
             else:
                 units.append(make_para_unit(pno, group))
+        # vong 2: hut dong duoi mo coi vao para/block ngay tren (cung size, cung le, gap < 1.05*size)
+        merged = absorb_tails(units, pno)
+        units = merged
     return units
+
+
+def absorb_tails(units, pno):
+    paras = [u for u in units if u["page"] == pno and u["mode"] in ("para", "block")]
+    cells = [u for u in units if u["page"] == pno and u["mode"] == "cell"]
+    removed = set()
+    for p in paras:
+        changed = True
+        while changed:
+            changed = False
+            for c in cells:
+                if c["id"] in removed or abs(c["size"] - p["size"]) > 0.1:
+                    continue
+                if abs(c["bbox"][0] - p["bbox"][0]) > 2.5:
+                    continue
+                gap = c["bbox"][1] - p["bbox"][3]
+                if -1.5 < gap < p["size"] * 1.05:
+                    # hut dong duoi vao para
+                    p["text"] = (p["text"] + " " + c["text"]).strip()
+                    p["bbox"] = [min(p["bbox"][0], c["bbox"][0]), p["bbox"][1],
+                                 max(p["bbox"][2], c["bbox"][2]), max(p["bbox"][3], c["bbox"][3])]
+                    p["spans"] = p.get("spans", []) + c.get("spans", [])
+                    removed.add(c["id"])
+                    changed = True
+    return [u for u in units if u["id"] not in removed]
 
 def make_cell_unit(pno, bi, li, line, all_lines, page):
     s0 = line["spans"][0]
@@ -306,7 +334,7 @@ def cmd_apply(pdf_path, units_path, trans_path, out_path, anchors_path=None):
                     lh = min(2.4, max(1.05, (bh * 0.92) / (len(parts) * size)))
                 while size > MIN_FONTSIZE:
                     # thu chen; am -> khong vua, giam co chu
-                    rc = page.insert_textbox(rect + (0,-1,2,6), t, fontsize=size,
+                    rc = page.insert_textbox(rect + (0,-1,2,2), t, fontsize=size,
                             fontname=fname, fontfile=ffile, color=color,
                             align=fitz.TEXT_ALIGN_LEFT, lineheight=lh)
                     if rc >= 0: break
