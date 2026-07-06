@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+output/
+work/
+*.pdf
+units*.json
+translations*.json
+anchors*.json
+qa_*.png
+.env

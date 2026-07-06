@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDF Translate — UI App Desktop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0f1117; --panel:#171a23; --panel2:#1d212d; --line:#2a2f3d;
+  --text:#e8eaf0; --mut:#8b93a7; --acc:#5b7cfa; --acc2:#7c5bfa;
+  --ok:#34d399; --warn:#fbbf24; --work:#f8fafc; --workline:#e2e8f0;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#0b0d12,#141824);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:28px 3%}
+.window{width:100%;max-width:1280px;background:var(--bg);border-radius:14px;border:1px solid var(--line);box-shadow:0 40px 120px rgba(0,0,0,.6);overflow:hidden}
+/* title bar */
+.titlebar{display:flex;align-items:center;gap:10px;padding:11px 16px;background:var(--panel);border-bottom:1px solid var(--line)}
+.dot{width:12px;height:12px;border-radius:50%}
+.titlebar .name{margin-left:8px;font-size:13px;font-weight:600;color:var(--mut)}
+.titlebar .name b{color:var(--text)}
+.badge-v{margin-left:auto;font-size:11px;color:var(--mut);border:1px solid var(--line);padding:3px 10px;border-radius:20px}
+/* layout */
+.app{display:flex;min-height:660px}
+.side{width:216px;background:var(--panel);border-right:1px solid var(--line);padding:14px 10px;display:flex;flex-direction:column;gap:4px}
+.side .logo{display:flex;align-items:center;gap:10px;padding:10px 12px 16px}
+.side .logo .ic{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--acc),var(--acc2));display:flex;align-items:center;justify-content:center;font-size:17px}
+.side .logo .t{font-weight:800;font-size:15px;letter-spacing:-.02em}
+.side .logo .s{font-size:10.5px;color:var(--mut)}
+.nav{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:9px;color:var(--mut);font-size:13.5px;font-weight:500;cursor:pointer;transition:.15s}
+.nav:hover{background:var(--panel2);color:var(--text)}
+.nav.act{background:linear-gradient(90deg,rgba(91,124,250,.18),rgba(124,91,250,.10));color:var(--text);border:1px solid rgba(91,124,250,.3)}
+.nav .n-ic{width:20px;text-align:center}
+.side .foot{margin-top:auto;padding:12px;font-size:11px;color:var(--mut);line-height:1.5;border-top:1px solid var(--line)}
+.side .foot .st{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.pulse{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok)}
+/* main */
+.main{flex:1;display:flex;flex-direction:column;background:var(--bg)}
+.tab{display:none;flex:1;flex-direction:column}
+.tab.show{display:flex}
+.mhead{padding:18px 24px 0}
+.mhead h1{font-size:19px;font-weight:700;letter-spacing:-.02em}
+.mhead p{font-size:12.5px;color:var(--mut);margin-top:3px}
+/* file row */
+.filebar{margin:16px 24px 0;display:flex;gap:12px;align-items:center}
+.filecard{flex:1;display:flex;align-items:center;gap:13px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:12px 16px}
+.filecard .fic{width:38px;height:44px;border-radius:6px;background:linear-gradient(160deg,#e5484d,#c62f34);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff}
+.filecard .fn{font-size:13.5px;font-weight:600}
+.filecard .fm{font-size:11.5px;color:var(--mut);margin-top:2px}
+.filecard .drop{margin-left:auto;font-size:11.5px;color:var(--mut);border:1.5px dashed var(--line);border-radius:8px;padding:8px 14px}
+.btn{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;border:none;border-radius:10px;padding:13px 22px;font-family:'Inter';font-size:13.5px;font-weight:700;cursor:pointer;transition:.2s;white-space:nowrap}
+.btn:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(91,124,250,.35)}
+.btn:disabled{opacity:.55;cursor:default;transform:none;box-shadow:none}
+/* stepper */
+.steps{display:flex;gap:0;margin:16px 24px 0;background:var(--panel);border:1px solid var(--line);border-radius:11px;overflow:hidden}
+.step{flex:1;padding:13px 16px;display:flex;gap:11px;align-items:center;border-right:1px solid var(--line);position:relative}
+.step:last-child{border-right:none}
+.snum{width:26px;height:26px;border-radius:50%;background:var(--panel2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--mut);flex-shrink:0}
+.step.done .snum{background:var(--ok);border-color:var(--ok);color:#052e1c}
+.step.run .snum{background:var(--acc);border-color:var(--acc);color:#fff;animation:blink 1.1s infinite}
+@keyframes blink{50%{box-shadow:0 0 0 5px rgba(91,124,250,.18)}}
+.step .sl{font-size:12.5px;font-weight:600}
+.step .sd{font-size:10.5px;color:var(--mut);margin-top:1px}
+/* preview */
+.preview{flex:1;display:flex;gap:14px;margin:16px 24px;min-height:0}
+.pane{flex:1;background:var(--work);border-radius:11px;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--line)}
+.pane .ph{display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--panel);font-size:11.5px;font-weight:600;color:var(--mut);border-bottom:1px solid var(--line)}
+.pane .ph .tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px}
+.tag.en{background:rgba(251,191,36,.15);color:var(--warn)}
+.tag.vi{background:rgba(52,211,153,.15);color:var(--ok)}
+.pane .pimg{flex:1;overflow:auto;background:#fff}
+.pane .pimg img{width:100%;display:block}
+/* pager + log */
+.pager{display:flex;align-items:center;gap:6px;margin:0 24px 10px}
+.pchip{width:30px;height:30px;border-radius:8px;background:var(--panel);border:1px solid var(--line);color:var(--mut);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s}
+.pchip:hover{color:var(--text);border-color:var(--acc)}
+.pchip.act{background:var(--acc);border-color:var(--acc);color:#fff}
+.pager .pl{font-size:11.5px;color:var(--mut);margin-right:6px}
+.log{margin:0 24px 20px;background:#0a0c10;border:1px solid var(--line);border-radius:10px;padding:11px 15px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#9aa3b8;height:86px;overflow-y:auto;line-height:1.75}
+.log .ok{color:var(--ok)} .log .ac{color:var(--acc)} .log .wr{color:var(--warn)}
+/* glossary */
+.gwrap{margin:16px 24px 20px;flex:1;background:var(--panel);border:1px solid var(--line);border-radius:11px;overflow:hidden;display:flex;flex-direction:column}
+.gbar{display:flex;gap:10px;padding:13px 16px;border-bottom:1px solid var(--line)}
+.ginput{flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px 13px;color:var(--text);font-family:'Inter';font-size:12.5px}
+.gsel{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px 13px;color:var(--text);font-family:'Inter';font-size:12.5px}
+table{width:100%;border-collapse:collapse}
+th{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);text-align:left;padding:9px 16px;border-bottom:1px solid var(--line);font-weight:600}
+td{font-size:12.5px;padding:9px 16px;border-bottom:1px solid rgba(42,47,61,.5)}
+td:first-child{color:var(--mut)} td:nth-child(2){font-weight:600}
+.dom{font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(124,91,250,.15);color:#a78bfa;font-weight:600}
+.dom.cam{background:rgba(52,211,153,.12);color:var(--ok)}
+/* settings */
+.swrap{margin:16px 24px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.scard{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:17px}
+.scard h3{font-size:13px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.srow{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(42,47,61,.5)}
+.srow:last-child{border:none}
+.srow .k{font-size:12.5px;color:var(--mut)}
+.srow .v{font-size:12.5px;font-weight:600}
+.srow select,.srow input{background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:7px 11px;color:var(--text);font-family:'Inter';font-size:12px;min-width:190px}
+.note{grid-column:1/-1;background:rgba(91,124,250,.08);border:1px solid rgba(91,124,250,.25);border-radius:11px;padding:14px 17px;font-size:12.5px;color:#aab8f5;line-height:1.65}
+@media(max-width:900px){.app{flex-direction:column}.side{width:100%;flex-direction:row;flex-wrap:wrap}.side .foot{display:none}.preview{flex-direction:column}.swrap{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="window">
+  <div class="titlebar">
+    <div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div>
+    <div class="name"><b>PDF Translate</b> — vhpgroup/pdftranslate</div>
+    <div class="badge-v">v2.0 · pipeline giữ bố cục</div>
+  </div>
+  <div class="app">
+    <div class="side">
+      <div class="logo">
+        <div class="ic">📄</div>
+        <div><div class="t">PDF Translate</div><div class="s">Anh → Việt · giữ bố cục</div></div>
+      </div>
+      <div class="nav act" data-tab="translate"><span class="n-ic">🔁</span> Dịch file</div>
+      <div class="nav" data-tab="glossary"><span class="n-ic">📚</span> Glossary</div>
+      <div class="nav" data-tab="history"><span class="n-ic">🕘</span> Lịch sử</div>
+      <div class="nav" data-tab="settings"><span class="n-ic">⚙️</span> Cài đặt</div>
+      <div class="foot">
+        <div class="st"><span class="pulse"></span> GPT-4.1 · đã kết nối</div>
+        <div>Glossary: 170 thuật ngữ · 2 ngành</div>
+      </div>
+    </div>
+
+    <div class="main">
+      <!-- TAB: TRANSLATE -->
+      <div class="tab show" id="tab-translate">
+        <div class="mhead">
+          <h1>Dịch catalog PDF</h1>
+          <p>Kéo thả PDF tiếng Anh — nhận lại PDF tiếng Việt giữ nguyên bố cục, hình ảnh, bảng biểu.</p>
+        </div>
+        <div class="filebar">
+          <div class="filecard">
+            <div class="fic">PDF</div>
+            <div>
+              <div class="fn">2012_ricoh_FA_camera.pdf</div>
+              <div class="fm">8 trang · 5.7 MB · có lớp chữ (không cần OCR) · phát hiện 759 đơn vị</div>
+            </div>
+            <div class="drop">+ Kéo thả file khác</div>
+          </div>
+          <button class="btn" id="runBtn" onclick="runPipeline()">▶ &nbsp;Bắt đầu dịch</button>
+        </div>
+        <div class="steps" id="steps">
+          <div class="step done"><div class="snum">✓</div><div><div class="sl">Phân tích</div><div class="sd">759 đơn vị · cell/para/block</div></div></div>
+          <div class="step" id="st2"><div class="snum">2</div><div><div class="sl">Dịch (GPT-4.1)</div><div class="sd">glossary camera · giữ số liệu/SKU</div></div></div>
+          <div class="step" id="st3"><div class="snum">3</div><div><div class="sl">Dựng lại PDF</div><div class="sd">redaction giữ hình · font Việt</div></div></div>
+          <div class="step" id="st4"><div class="snum">4</div><div><div class="sl">QA so sánh</div><div class="sd">render từng trang · duyệt mắt</div></div></div>
+        </div>
+        <div class="preview">
+          <div class="pane">
+            <div class="ph">BẢN GỐC <span class="tag en">EN</span><span style="margin-left:auto">trang <span id="pgL">4</span>/8</span></div>
+            <div class="pimg"><div style="padding:14px;background:#fff;height:100%;font-family:Inter,sans-serif">
+  <div style="height:26px;background:#3d2f4d;border-radius:4px;margin-bottom:10px;display:flex;align-items:center;padding:0 10px;color:#fff;font-size:9px;font-weight:700;letter-spacing:.04em">FV-XXXXXX PRODUCT SPECIFICATIONS</div>
+  <div style="display:flex;gap:8px;margin-bottom:10px">
+    <div style="flex:1;height:64px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:8px;color:#cbd5e1">[ ảnh sản phẩm ]</div>
+    <div style="flex:2;height:64px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;padding:7px;font-size:8px;color:#94a3b8;line-height:1.6">&#9632; High-speed frame rate of 2M: 15 fps<br>&#9632; Ultra-compact 28 mm &times; 28 mm CCD camera</div>
+  </div>
+<div style="display:flex;border-bottom:1px solid #eef2f7;font-size:8px"><div style="width:34%;padding:5px 7px;color:#64748b">Imager</div><div style="flex:1;padding:5px 7px;color:#0f172a;font-weight:600">1/1.8&#8221; interline UXGA monochrome CCD</div></div><div style="display:flex;border-bottom:1px solid #eef2f7;font-size:8px"><div style="width:34%;padding:5px 7px;color:#64748b">Active picture elements</div><div style="flex:1;padding:5px 7px;color:#0f172a;font-weight:600">UXGA class: 1620 (H) &times; 1236 (V)</div></div><div style="display:flex;border-bottom:1px solid #eef2f7;font-size:8px"><div style="width:34%;padding:5px 7px;color:#64748b">Cell size</div><div style="flex:1;padding:5px 7px;color:#0f172a;font-weight:600">4.4 (H) &times; 4.4 (V) &mu;m</div></div><div style="display:flex;border-bottom:1px solid #eef2f7;font-size:8px"><div style="width:34%;padding:5px 7px;color:#64748b">Minimum scene illumination</div><div style="flex:1;padding:5px 7px;color:#0f172a;font-weight:600">0.1 lux at F1.2</div></div><div style="display:flex;border-bottom:1px solid #eef2f7;font-size:8px"><div style="width:34%;padding:5px 7px;color:#64748b">Lens mount</div><div style="flex:1;padding:5px 7px;color:#0f172a;font-weight:600">C mount</div></div><div style="display:flex;border-bottom:1px solid #eef2f7;font-size:8px"><div style="width:34%;padding:5px 7px;color:#64748b">Weight</div><div style="flex:1;padding:5px 7px;color:#0f172a;font-weight:600">Approximately 43 g</div></div></div></div>
+          </div>
+          <div class="pane">
+            <div class="ph">BẢN DỊCH <span class="tag vi">VI</span><span style="margin-left:auto">trang <span id="pgR">4</span>/8</span></div>
+            <div class="pimg"><div style="padding:14px;background:#fff;height:100%;font-family:Inter,sans-serif">
+  <div style="height:26px;background:#3d2f4d;border-radius:4px;margin-bottom:10px;display:flex;align-items:center;padding:0 10px;color:#fff;font-size:9px;font-weight:700;letter-spacing:.04em">FV-XXXXXX — THÔNG SỐ KỸ THUẬT</div>
+  <div style="display:flex;gap:8px;margin-bottom:10px">
+    <div style="flex:1;height:64px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:8px;color:#cbd5e1">[ ảnh sản phẩm ]</div>
+    <div style="flex:2;height:64px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;padding:7px;font-size:8px;color:#94a3b8;line-height:1.6">&#9632; Tốc độ khung hình cao 2M: 15 fps<br>&#9632; Camera CCD siêu nhỏ gọn 28 mm &times; 28 mm</div>
+  </div>
+<div style="display:flex;border-bottom:1px solid #eef2f7;font-size:8px"><div style="width:34%;padding:5px 7px;color:#64748b">Cảm biến ảnh</div><div style="flex:1;padding:5px 7px;color:#0f172a;font-weight:600">CCD interline 1/1.8&#8221; UXGA trắng đen</div></div><div style="display:flex;border-bottom:1px solid #eef2f7;font-size:8px"><div style="width:34%;padding:5px 7px;color:#64748b">Số điểm ảnh hiệu dụng</div><div style="flex:1;padding:5px 7px;color:#0f172a;font-weight:600">Chuẩn UXGA: 1620 (H) &times; 1236 (V)</div></div><div style="display:flex;border-bottom:1px solid #eef2f7;font-size:8px"><div style="width:34%;padding:5px 7px;color:#64748b">Kích thước điểm ảnh</div><div style="flex:1;padding:5px 7px;color:#0f172a;font-weight:600">4.4 (H) &times; 4.4 (V) &mu;m</div></div><div style="display:flex;border-bottom:1px solid #eef2f7;font-size:8px"><div style="width:34%;padding:5px 7px;color:#64748b">Độ rọi cảnh tối thiểu</div><div style="flex:1;padding:5px 7px;color:#0f172a;font-weight:600">0.1 lux tại F1.2</div></div><div style="display:flex;border-bottom:1px solid #eef2f7;font-size:8px"><div style="width:34%;padding:5px 7px;color:#64748b">Ngàm ống kính</div><div style="flex:1;padding:5px 7px;color:#0f172a;font-weight:600">Ngàm C</div></div><div style="display:flex;border-bottom:1px solid #eef2f7;font-size:8px"><div style="width:34%;padding:5px 7px;color:#64748b">Trọng lượng</div><div style="flex:1;padding:5px 7px;color:#0f172a;font-weight:600">Khoảng 43 g</div></div></div></div>
+          </div>
+        </div>
+        <div class="pager">
+          <span class="pl">Trang:</span>
+          <div class="pchip" onclick="setPage(this,1)">1</div><div class="pchip" onclick="setPage(this,2)">2</div>
+          <div class="pchip" onclick="setPage(this,3)">3</div><div class="pchip act" onclick="setPage(this,4)">4</div>
+          <div class="pchip" onclick="setPage(this,5)">5</div><div class="pchip" onclick="setPage(this,6)">6</div>
+          <div class="pchip" onclick="setPage(this,7)">7</div><div class="pchip" onclick="setPage(this,8)">8</div>
+          <span class="pl" style="margin-left:auto">💾 Xuất: <b style="color:var(--text)">RICOH_FA_Camera_TiengViet.pdf</b></span>
+        </div>
+        <div class="log" id="log">
+          <div><span class="ok">✓</span> plan: 759 units → fa_units.json (cell 671 · para 52 · block 36)</div>
+          <div><span class="ac">›</span> Sẵn sàng dịch. Nhấn "Bắt đầu dịch" để chạy 3 bước còn lại…</div>
+        </div>
+      </div>
+
+      <!-- TAB: GLOSSARY -->
+      <div class="tab" id="tab-glossary">
+        <div class="mhead"><h1>Glossary — thuật ngữ nhất quán</h1><p>Mỗi ngành một bộ. Thuật ngữ mới học được sẽ đề xuất thêm vào đây.</p></div>
+        <div class="gwrap">
+          <div class="gbar">
+            <input class="ginput" placeholder="🔍  Tìm thuật ngữ…">
+            <select class="gsel"><option>Tất cả ngành</option><option>Máy in / văn phòng</option><option>Camera công nghiệp</option></select>
+            <button class="btn" style="padding:9px 18px">+ Thêm</button>
+          </div>
+          <div style="overflow:auto;flex:1">
+          <table>
+            <tr><th>Tiếng Anh</th><th>Tiếng Việt</th><th>Ngành</th></tr>
+            <tr><td>Warm-up time</td><td>Thời gian khởi động</td><td><span class="dom">Máy in</span></td></tr>
+            <tr><td>Continuous output speed</td><td>Tốc độ in liên tục</td><td><span class="dom">Máy in</span></td></tr>
+            <tr><td>Booklet finisher</td><td>Bộ hoàn thiện đóng sách</td><td><span class="dom">Máy in</span></td></tr>
+            <tr><td>Paper weight</td><td>Định lượng giấy</td><td><span class="dom">Máy in</span></td></tr>
+            <tr><td>Global shutter</td><td>Màn trập toàn cục</td><td><span class="dom cam">Camera CN</span></td></tr>
+            <tr><td>Frame rate</td><td>Tốc độ khung hình</td><td><span class="dom cam">Camera CN</span></td></tr>
+            <tr><td>Minimum scene illumination</td><td>Độ rọi cảnh tối thiểu</td><td><span class="dom cam">Camera CN</span></td></tr>
+            <tr><td>Preprocessing functions</td><td>Chức năng tiền xử lý</td><td><span class="dom cam">Camera CN</span></td></tr>
+            <tr><td>AOI (Area of Interest)</td><td>AOI: Vùng quan tâm</td><td><span class="dom cam">Camera CN</span></td></tr>
+            <tr><td>Depth (bản vẽ)</td><td>sâu</td><td><span class="dom cam">Camera CN</span></td></tr>
+          </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: HISTORY -->
+      <div class="tab" id="tab-history">
+        <div class="mhead"><h1>Lịch sử dịch</h1><p>Các dự án đã hoàn thành.</p></div>
+        <div class="gwrap" style="flex:0 1 auto">
+          <table>
+            <tr><th>File</th><th>Trang</th><th>Đơn vị dịch</th><th>Ngày</th><th>Kết quả</th></tr>
+            <tr><td style="color:var(--text);font-weight:600">2012_ricoh_FA_camera.pdf</td><td>8</td><td>419 / 759</td><td>06/07/2026</td><td><span class="dom cam">✓ Hoàn tất</span></td></tr>
+            <tr><td style="color:var(--text);font-weight:600">ricoh-im-2500-to-6000-brochure.pdf</td><td>4</td><td>166 / 273</td><td>06/07/2026</td><td><span class="dom cam">✓ Hoàn tất</span></td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB: SETTINGS -->
+      <div class="tab" id="tab-settings">
+        <div class="mhead"><h1>Cài đặt</h1><p>Model dịch, font chữ và tùy chọn pipeline.</p></div>
+        <div class="swrap">
+          <div class="scard">
+            <h3>🤖 Model dịch <span style="font-size:10px;color:var(--mut);font-weight:500">(module tách rời — đổi tùy ý)</span></h3>
+            <div class="srow"><span class="k">Nhà cung cấp</span><select><option>OpenAI (tương thích)</option><option>Anthropic</option><option>Nội bộ / self-host</option></select></div>
+            <div class="srow"><span class="k">Model</span><select><option>gpt-4.1</option><option>gpt-4.1-mini</option><option>claude-sonnet</option></select></div>
+            <div class="srow"><span class="k">API Key</span><input type="password" value="sk-••••••••••••••••"></div>
+            <div class="srow"><span class="k">Batch size</span><input type="number" value="30" style="min-width:80px"></div>
+          </div>
+          <div class="scard">
+            <h3>🔤 Dựng lại PDF</h3>
+            <div class="srow"><span class="k">Font tiếng Việt</span><select><option>DejaVu Sans Condensed</option><option>Noto Sans</option><option>Be Vietnam Pro</option></select></div>
+            <div class="srow"><span class="k">Cỡ chữ tối thiểu</span><span class="v">4.0 pt</span></div>
+            <div class="srow"><span class="k">Giữ hình ảnh & đồ họa</span><span class="v" style="color:var(--ok)">Luôn bật</span></div>
+            <div class="srow"><span class="k">Neo bullet ô vuông</span><span class="v" style="color:var(--ok)">Tự động</span></div>
+          </div>
+          <div class="note">
+            💡 <b>Kiến trúc:</b> app này chạy pipeline 3 bước từ repo <b>vhpgroup/pdftranslate</b> — <i>plan → dịch → apply</i>. Bước dịch là module tách rời (units.json → translations.json) nên đổi GPT-4.1 / Claude / model nội bộ mà không đụng phần xử lý PDF. Quy tắc bất di bất dịch: giữ nguyên số liệu, đơn vị, mã SKU, thương hiệu, tên tín hiệu điện.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+// tab switching
+document.querySelectorAll('.nav').forEach(n=>{
+  n.onclick=()=>{
+    document.querySelectorAll('.nav').forEach(x=>x.classList.remove('act'));
+    n.classList.add('act');
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('show'));
+    document.getElementById('tab-'+n.dataset.tab).classList.add('show');
+  };
+});
+function setPage(el,p){
+  document.querySelectorAll('.pchip').forEach(c=>c.classList.remove('act'));
+  el.classList.add('act');
+  document.getElementById('pgL').textContent=p;
+  document.getElementById('pgR').textContent=p;
+  addLog('<span class="ac">›</span> Xem trước trang '+p+' (demo minh họa — bản repo không kèm nội dung catalog thật)');
+}
+function addLog(h){
+  const l=document.getElementById('log');
+  const d=document.createElement('div'); d.innerHTML=h; l.appendChild(d); l.scrollTop=l.scrollHeight;
+}
+let running=false;
+function runPipeline(){
+  if(running) return; running=true;
+  const btn=document.getElementById('runBtn'); btn.disabled=true; btn.textContent='Đang chạy…';
+  const s2=document.getElementById('st2'), s3=document.getElementById('st3'), s4=document.getElementById('st4');
+  s2.classList.add('run');
+  addLog('<span class="ac">›</span> dịch: gửi 461 đơn vị có chữ tới GPT-4.1 (batch 30, kèm glossary camera)…');
+  setTimeout(()=>{ addLog('<span class="ac">›</span> dịch: 240/461 … giữ nguyên 298 đơn vị thuần số liệu/mã'); },1400);
+  setTimeout(()=>{
+    s2.classList.remove('run'); s2.classList.add('done'); s2.querySelector('.snum').textContent='✓';
+    s3.classList.add('run');
+    addLog('<span class="ok">✓</span> dịch: 419 bản dịch → fa_translations.json (+11 nhóm bullet neo ô vuông)');
+    addLog('<span class="ac">›</span> apply: xóa chữ gốc (giữ hình/đồ họa) + chèn tiếng Việt DejaVu Condensed…');
+  },2600);
+  setTimeout(()=>{
+    s3.classList.remove('run'); s3.classList.add('done'); s3.querySelector('.snum').textContent='✓';
+    s4.classList.add('run');
+    addLog('<span class="ok">✓</span> apply: 419 thay thế, 0 ô phải thu nhỏ quá mức → RICOH_FA_Camera_TiengViet.pdf');
+    addLog('<span class="ac">›</span> QA: render 8 trang gốc/dịch cạnh nhau…');
+  },4200);
+  setTimeout(()=>{
+    s4.classList.remove('run'); s4.classList.add('done'); s4.querySelector('.snum').textContent='✓';
+    addLog('<span class="ok">✓</span> QA đạt: cột thẳng · hình 100% · bullet thẳng hàng. <span class="wr">Sẵn sàng tải về ↓</span>');
+    btn.textContent='✓ Hoàn tất — Tải PDF'; btn.disabled=false; running=false;
+  },5600);
+}
+</script>
+</body>
+</html>
