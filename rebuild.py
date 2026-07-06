@@ -14,9 +14,44 @@ Thiet ke:
 """
 import fitz, json, sys, re
 
-FONT_REG  = "/usr/share/fonts/dejavu-sans-fonts/DejaVuSansCondensed.ttf"
-FONT_BOLD = "/usr/share/fonts/dejavu-sans-fonts/DejaVuSansCondensed-Bold.ttf"
-FONT_ITAL = "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans-Oblique.ttf"
+import os
+
+def _find_font(env_key, candidates, fallback=None):
+    """Do font da nen tang: uu tien bien moi truong, roi danh sach duong dan pho bien."""
+    p = os.environ.get(env_key)
+    if p and os.path.exists(p):
+        return p
+    for c in candidates:
+        if os.path.exists(c):
+            return c
+    if fallback:
+        return fallback
+    raise FileNotFoundError(
+        f"Khong tim thay font tieng Viet ({env_key}). "
+        f"Cai dat DejaVu fonts (Debian/Ubuntu: apt install fonts-dejavu-core fonts-dejavu-extra; "
+        f"Fedora: dnf install dejavu-sans-fonts) hoac dat bien moi truong {env_key}=/duong/dan/font.ttf")
+
+FONT_REG = _find_font("PDFTRANSLATE_FONT_REG", [
+    "/usr/share/fonts/dejavu-sans-fonts/DejaVuSansCondensed.ttf",    # Fedora/RHEL/Amazon Linux
+    "/usr/share/fonts/truetype/dejavu/DejaVuSansCondensed.ttf",      # Debian/Ubuntu (fonts-dejavu-extra)
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",               # Debian/Ubuntu (core)
+    "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf",
+    "/usr/local/share/fonts/DejaVuSansCondensed.ttf",
+    os.path.expanduser("~/Library/Fonts/DejaVuSans.ttf"),            # macOS (user)
+    "C:/Windows/Fonts/DejaVuSans.ttf",                               # Windows
+])
+FONT_BOLD = _find_font("PDFTRANSLATE_FONT_BOLD", [
+    "/usr/share/fonts/dejavu-sans-fonts/DejaVuSansCondensed-Bold.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSansCondensed-Bold.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans-Bold.ttf",
+    os.path.expanduser("~/Library/Fonts/DejaVuSans-Bold.ttf"),
+    "C:/Windows/Fonts/DejaVuSans-Bold.ttf",
+], fallback=None)
+FONT_ITAL = _find_font("PDFTRANSLATE_FONT_ITAL", [
+    "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans-Oblique.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Oblique.ttf",
+], fallback=FONT_REG)
 MIN_FONTSIZE = 4.0
 
 def rgb(c):

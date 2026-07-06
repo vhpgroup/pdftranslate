@@ -1,5 +1,7 @@
 # pdftranslate — Dịch catalog PDF giữ nguyên bố cục (EN → VI)
 
+[![tests](https://github.com/vhpgroup/pdftranslate/actions/workflows/test.yml/badge.svg)](https://github.com/vhpgroup/pdftranslate/actions/workflows/test.yml)
+
 Pipeline dịch file PDF dạng catalog/brochure/tài liệu kỹ thuật từ tiếng Anh sang tiếng Việt,
 **giữ nguyên 100% bố cục**: hình ảnh, bảng biểu, bản vẽ kỹ thuật, màu chữ, vị trí từng ô.
 Chỉ lớp chữ được thay bằng tiếng Việt.
@@ -88,6 +90,19 @@ thương hiệu/phần mềm/chuẩn (PostScript, Camera Link, GigE Vision...), 
 | `glossaries/glossary_vi.json` | Thuật ngữ máy in / thiết bị văn phòng (112 mục) |
 | `glossaries/glossary_camera_vi.json` | Thuật ngữ camera công nghiệp / machine vision (63 mục) |
 | `docs/ui-mockup.html` | Mockup UI app desktop (mở trực tiếp bằng trình duyệt) |
+
+## Chạy test
+
+```bash
+pip install pytest
+pytest tests/ -v            # hoac: python3 tests/test_pipeline.py
+```
+Bộ test tự sinh PDF mẫu (không cần file ngoài) và kiểm chứng trọn pipeline:
+phát hiện đơn vị, dịch đúng dấu tiếng Việt, giữ nguyên ô không dịch, redact-only,
+bảo toàn đồ họa vector. CI chạy tự động trên Ubuntu (Python 3.9 & 3.12) mỗi khi push.
+
+Font: `rebuild.py` tự dò DejaVu trên Fedora/Ubuntu/macOS/Windows; ghi đè bằng biến
+môi trường `PDFTRANSLATE_FONT_REG` / `PDFTRANSLATE_FONT_BOLD` / `PDFTRANSLATE_FONT_ITAL`.
 
 ## Giới hạn đã biết
 
