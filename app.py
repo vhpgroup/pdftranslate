@@ -39,15 +39,46 @@ QUY TAC BAT BUOC:
 4. Tra ve JSON: {"id": "ban dich", ...} cho DUNG cac id duoc giao, khong them bot."""
 
 
+INVISIBLE_CHARS = "\u200b\u200c\u200d\ufeff\u00a0\u2060"
+
+
+def sanitize_api_key(key):
+    """Loai ky tu an/xuong dong do copy-paste; bat loi key khong hop le TRUOC khi goi API."""
+    key = "".join(ch for ch in (key or "") if not ch.isspace() and ch not in INVISIBLE_CHARS)
+    if not key:
+        raise ValueError("Chưa nhập API key.")
+    if not key.isascii():
+        bad = sorted({ch for ch in key if ord(ch) > 127})[:5]
+        raise ValueError(
+            "API key chứa ký tự không hợp lệ (thường do copy/paste kèm ký tự ẩn "
+            f"hoặc bị chuyển mã): {', '.join(repr(b) for b in bad)}\n"
+            "→ Hãy dán lại key trực tiếp từ trang API của nhà cung cấp (platform.openai.com).")
+    return key
+
+
 def call_llm(base_url, api_key, model, messages):
     req = urllib.request.Request(
         base_url.rstrip("/") + "/chat/completions",
-        headers={"Authorization": "Bearer " + api_key,
+        headers={"Authorization": "Bearer " + sanitize_api_key(api_key),
                  "Content-Type": "application/json"},
         data=json.dumps({"model": model, "messages": messages,
                          "response_format": {"type": "json_object"}}).encode())
-    with urllib.request.urlopen(req, timeout=120) as r:
-        return json.loads(json.load(r)["choices"][0]["message"]["content"])
+    try:
+        with urllib.request.urlopen(req, timeout=120) as r:
+            return json.loads(json.load(r)["choices"][0]["message"]["content"])
+    except urllib.error.HTTPError as e:
+        try:
+            detail = json.loads(e.read().decode("utf-8", "replace"))["error"]["message"]
+        except Exception:  # noqa: BLE001
+            detail = e.reason
+        hint = {401: "API key sai hoặc hết hạn.",
+                403: "Key không có quyền dùng model này.",
+                404: "Model không tồn tại — kiểm tra ô Model.",
+                429: "Hết hạn mức/quota hoặc gọi quá nhanh."}.get(e.code, "")
+        raise RuntimeError(f"API trả lỗi {e.code}: {detail} {hint}".strip()) from None
+    except urllib.error.URLError as e:
+        raise RuntimeError(f"Không kết nối được API ({e.reason}). "
+                           "Kiểm tra mạng và Base URL.") from None
 
 
 VN_DIACRITICS = re.compile(r"[àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]", re.I)
@@ -202,8 +233,10 @@ def main():
         if not pdf or not os.path.exists(pdf):
             messagebox.showwarning("Thiếu file", "Hãy chọn file PDF tiếng Anh.")
             return
-        if not key_var.get().strip():
-            messagebox.showwarning("Thiếu API key", "Hãy nhập API key của model dịch.")
+        try:
+            sanitize_api_key(key_var.get())
+        except ValueError as ve:
+            messagebox.showwarning("API key không hợp lệ", str(ve))
             return
         out = os.path.splitext(pdf)[0] + "_TiengViet.pdf"
         btn.configure(state="disabled")

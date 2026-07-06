@@ -265,3 +265,22 @@ def test_translate_guards():
     assert "c" not in seen and "d" not in seen, "don vi fragile van bi gui cho LLM"
     assert out.get("a") == "Thời gian khởi động"
     assert "b" not in out, "echo dot bien phai bi giu nguyen ban goc"
+
+
+def test_sanitize_api_key():
+    sys.path.insert(0, ROOT)
+    import app
+    # key hop le co xuong dong/khoang trang/ky tu an do paste -> duoc lam sach
+    assert app.sanitize_api_key("sk-ab\ncd  ef​﻿gh") == "sk-abcdefgh"
+    # key chua ky tu ngoai ASCII -> bao loi ro rang truoc khi goi API
+    try:
+        app.sanitize_api_key("sk-proj-ábc")
+        assert False, "phai nem ValueError"
+    except ValueError as e:
+        assert "không hợp lệ" in str(e)
+    # key rong -> bao thieu
+    try:
+        app.sanitize_api_key("   ")
+        assert False, "phai nem ValueError"
+    except ValueError as e:
+        assert "Chưa nhập" in str(e)
