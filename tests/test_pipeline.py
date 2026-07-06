@@ -157,8 +157,41 @@ def test_glossaries_valid():
 
 def test_scripts_compile():
     import py_compile
-    for f in ("rebuild.py", "extract.py", "translate_api_example.py"):
+    for f in ("rebuild.py", "extract.py", "translate_api_example.py", "app.py"):
         py_compile.compile(os.path.join(ROOT, f), doraise=True)
+
+
+def test_app_core_with_fake_llm(tmp_path):
+    """Loi app desktop (khong GUI): run_pipeline voi bo dich gia lap."""
+    sys.path.insert(0, ROOT)
+    import app
+
+    mapping = {"Warm-up time": "Thời gian khởi động", "18 seconds": "18 giây",
+               "Print speed": "Tốc độ in", "25 ppm": "25 trang/phút",
+               "Product Specifications": "Thông số kỹ thuật sản phẩm"}
+
+    def fake_llm(messages):
+        payload = messages[-1]["content"].rsplit(":\n", 1)[1]
+        chunk = json.loads(payload)
+        out = {}
+        for uid, text in chunk.items():
+            for k, v in mapping.items():
+                if text.startswith(k):
+                    out[uid] = v
+                    break
+            else:
+                out[uid] = text  # nguyen van -> pipeline tu bo qua
+        return out
+
+    src = str(tmp_path / "sample.pdf")
+    out_p = str(tmp_path / "sample_TiengViet.pdf")
+    make_sample_pdf(src)
+    app.run_pipeline(src, out_p, None, "http://fake", "key", "fake-model",
+                     llm=fake_llm)
+    norm = " ".join("".join(p.get_text() for p in fitz.open(out_p)).split())
+    assert "Thời gian khởi động" in norm and "18 giây" in norm
+    assert "Warm-up time" not in norm
+    assert "2 GB" in norm  # tra nguyen van -> giu nguyen pixel goc
 
 
 if __name__ == "__main__":
@@ -166,7 +199,7 @@ if __name__ == "__main__":
     import tempfile
     fails = 0
     for fn in (test_plan_detects_units, test_apply_translates_and_preserves,
-               test_unchanged_units_untouched):
+               test_unchanged_units_untouched, test_app_core_with_fake_llm):
         with tempfile.TemporaryDirectory() as td:
             try:
                 from pathlib import Path

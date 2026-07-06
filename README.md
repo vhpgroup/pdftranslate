@@ -89,7 +89,20 @@ thương hiệu/phần mềm/chuẩn (PostScript, Camera Link, GigE Vision...), 
 | `translate_api_example.py` | Module dịch tách rời — gắn GPT-4.1 hoặc API tương thích OpenAI |
 | `glossaries/glossary_vi.json` | Thuật ngữ máy in / thiết bị văn phòng (112 mục) |
 | `glossaries/glossary_camera_vi.json` | Thuật ngữ camera công nghiệp / machine vision (63 mục) |
+| `app.py` | App desktop Tkinter — chạy trọn pipeline, đóng gói được .exe |
 | `docs/ui-mockup.html` | Mockup UI app desktop (mở trực tiếp bằng trình duyệt) |
+
+## App desktop (.exe)
+
+`app.py` là GUI Tkinter chạy trọn pipeline (chọn PDF → nhập API key GPT-4.1 → nhận PDF tiếng Việt):
+
+```bash
+python3 app.py                      # chạy từ mã nguồn (cần Python + pymupdf)
+```
+
+**Tải .exe Windows**: vào tab **Actions → build-exe → Run workflow**, chờ build xong rồi
+tải artifact **PDFTranslate-windows** (không cần cài Python). Push tag `v*` sẽ tự tạo
+Release kèm file .exe. Trên Windows app dùng font Arial/Segoe UI bản địa (đủ dấu tiếng Việt).
 
 ## Chạy test
 

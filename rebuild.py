@@ -38,7 +38,11 @@ FONT_REG = _find_font("PDFTRANSLATE_FONT_REG", [
     "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf",
     "/usr/local/share/fonts/DejaVuSansCondensed.ttf",
     os.path.expanduser("~/Library/Fonts/DejaVuSans.ttf"),            # macOS (user)
-    "C:/Windows/Fonts/DejaVuSans.ttf",                               # Windows
+    "C:/Windows/Fonts/DejaVuSans.ttf",                               # Windows (neu da cai)
+    "C:/Windows/Fonts/arial.ttf",                                    # Windows ban dia (du dau Viet)
+    "C:/Windows/Fonts/segoeui.ttf",                                  # Windows ban dia
+    "/Library/Fonts/Arial.ttf",                                      # macOS ban dia
+    "/System/Library/Fonts/Supplemental/Arial.ttf",
 ])
 FONT_BOLD = _find_font("PDFTRANSLATE_FONT_BOLD", [
     "/usr/share/fonts/dejavu-sans-fonts/DejaVuSansCondensed-Bold.ttf",
@@ -47,10 +51,15 @@ FONT_BOLD = _find_font("PDFTRANSLATE_FONT_BOLD", [
     "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans-Bold.ttf",
     os.path.expanduser("~/Library/Fonts/DejaVuSans-Bold.ttf"),
     "C:/Windows/Fonts/DejaVuSans-Bold.ttf",
+    "C:/Windows/Fonts/arialbd.ttf",
+    "C:/Windows/Fonts/segoeuib.ttf",
+    "/Library/Fonts/Arial Bold.ttf",
+    "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
 ], fallback=None)
 FONT_ITAL = _find_font("PDFTRANSLATE_FONT_ITAL", [
     "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans-Oblique.ttf",
     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Oblique.ttf",
+    "C:/Windows/Fonts/ariali.ttf",
 ], fallback=FONT_REG)
 MIN_FONTSIZE = 4.0
 
